@@ -1,10 +1,10 @@
 // firebase-config.js
 export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  apiKey: "AIzaSyCpw9RcZeXoWr5qykB4awgbCC-MiVVma_M",
+  authDomain: "promohub-666.firebaseapp.com",
+  projectId: "promohub-666",
+  storageBucket: "promohub-666.firebasestorage.app",
+  messagingSenderId: "781257685316",
+  appId: "1:781257685316:web:3118a505979426e0c6bf11",
+  measurementId: "G-ND4NTZM0Q8"
 };
