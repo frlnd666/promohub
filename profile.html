@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromoHub - Profil</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Anda bisa memindahkan style ini ke styles.css */
+        .profile-card { padding: 20px; text-align: left; }
+        .profile-header { text-align: center; margin-bottom: 25px; }
+        .profile-picture { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #00ffff; cursor: pointer; }
+        .profile-picture:hover { opacity: 0.8; }
+        .profile-field { margin-bottom: 15px; }
+        .profile-field label { display: block; color: #00ffff; margin-bottom: 5px; font-size: 0.9em; }
+        .profile-field .value { font-size: 1.1em; }
+        .profile-field input { width: 100%; padding: 10px; background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(0, 255, 255, 0.3); border-radius: 5px; color: #ffffff; }
+        .edit-mode { display: none; } /* Sembunyikan input secara default */
+        .action-buttons { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
+        #fileUpload { display: none; }
+    </style>
+</head>
+<body>
+
+<main class="profile-container">
+    <h2>Profil Pengguna</h2>
+    <div id="profileCard" class="profile-card">
+        
+        <div class="profile-header">
+            <label for="fileUpload">
+                <img id="profileImage" src="images/default-avatar.png" alt="Foto Profil" class="profile-picture">
+            </label>
+            <input type="file" id="fileUpload" accept="image/*">
+            <h3 id="displayName" class="value" style="margin-top: 10px;">Memuat nama...</h3>
+            <div class="edit-mode">
+                <input type="text" id="displayNameInput" placeholder="Masukkan nama Anda">
+            </div>
+        </div>
+
+        <div class="profile-field">
+            <label>Email</label>
+            <p id="userEmail" class="value">Memuat email...</p>
+        </div>
+
+        <div class="profile-field">
+            <label>Nomor Handphone</label>
+            <p id="phoneNumber" class="value">Belum diisi</p>
+            <div class="edit-mode">
+                <input type="tel" id="phoneInput" placeholder="Contoh: 08123456789">
+            </div>
+        </div>
+
+        <div class="profile-field">
+            <label>Nomor Rekening</label>
+            <p id="bankAccount" class="value">Belum diisi</p>
+            <div class="edit-mode">
+                <input type="text" id="bankInput" placeholder="Contoh: 123456789 (BCA)">
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="editBtn" class="submit-btn">Edit Profil</button>
+            <div class="edit-mode">
+                <button id="saveBtn" class="submit-btn">Simpan Perubahan</button>
+                <button id="cancelBtn" class="logout-btn" style="background: #555;">Batal</button>
+            </div>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </div>
+        <div id="formStatus" style="text-align: center; margin-top: 15px;"></div>
+    </div>
+</main>
+
+<nav class="navbar">
+    </nav>
+
+<script type="module" src="js/profile.js"></script>
+</body>
+</html>

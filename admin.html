@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromoHub Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* CSS Khusus untuk Halaman Admin */
+        .admin-container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .admin-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .admin-tab-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1em;
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .admin-tab-btn:hover,
+        .admin-tab-btn.active {
+            color: #00ffff;
+            border-bottom: 2px solid #00ffff;
+        }
+
+        .admin-content {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 10px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Styling untuk form unggahan */
+        .admin-form .form-group {
+            margin-bottom: 20px;
+        }
+
+        .admin-form label {
+            display: block;
+            margin-bottom: 8px;
+            color: #00ffff;
+        }
+
+        .admin-form input[type="text"],
+        .admin-form input[type="file"],
+        .admin-form input[type="number"],
+        .admin-form textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1em;
+        }
+        
+        .admin-form textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        /* styling untuk pesan status */
+        .form-status {
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .form-status.success {
+            color: #50fa7b;
+        }
+
+        .form-status.error {
+            color: #ff5555;
+        }
+        
+        /* styling untuk dashboard member dan tabel */
+        .dashboard-stats {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background-color: rgba(0, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 150px;
+        }
+        
+        .stat-card h4 {
+            margin: 0;
+            color: #00ffff;
+        }
+        
+        .stat-card p {
+            font-size: 2.5em;
+            margin: 10px 0 0 0;
+            color: white;
+        }
+
+        .item-list, .member-list {
+            margin-top: 25px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .item-table, .member-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
+
+        .item-table th,
+        .item-table td,
+        .member-table th,
+        .member-table td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+            text-align: left;
+        }
+        
+        .item-table td:last-child,
+        .member-table td:last-child {
+            text-align: center;
+        }
+
+        .item-table th,
+        .member-table th {
+            color: #00ffff;
+            background-color: rgba(0, 255, 255, 0.05);
+        }
+
+        .item-table tr:last-child td,
+        .member-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .status-valid {
+            color: #50fa7b;
+        }
+        
+        .status-pending {
+            color: #ffff55;
+        }
+        
+        .action-btn {
+            background: none;
+            border: 1px solid;
+            color: #fff;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .action-btn.edit {
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+        
+        .action-btn.edit:hover {
+            background-color: #00ffff;
+            color: #1a1a1a;
+        }
+        
+        .action-btn.delete {
+            border-color: #ff5555;
+            color: #ff5555;
+        }
+
+        .action-btn.delete:hover {
+            background-color: #ff5555;
+            color: #1a1a1a;
+        }
+        
+        #productForm button[type="submit"],
+        #storeForm button[type="submit"],
+        #promoForm button[type="submit"],
+        #bannerForm button[type="submit"] {
+            width: 100%;
+            padding: 15px;
+            background-color: #00ffff;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #productForm button[type="submit"]:hover,
+        #storeForm button[type="submit"]:hover,
+        #promoForm button[type="submit"]:hover,
+        #bannerForm button[type="submit"]:hover {
+            background-color: #50fa7b;
+        }
+        
+        .edit-form-heading {
+            color: #50fa7b;
+        }
+
+    </style>
+</head>
+<body>
+
+<main class="admin-container">
+    <h2>PromoHub Dashboard Admin</h2>
+
+    <div class="admin-tabs">
+        <button class="admin-tab-btn active" data-tab="products">Produk</button>
+        <button class="admin-tab-btn" data-tab="stores">Toko</button>
+        <button class="admin-tab-btn" data-tab="promos">Promo</button>
+        <button class="admin-tab-btn" data-tab="banners">Banner</button>
+        <button class="admin-tab-btn" data-tab="members">Member</button>
+    </div>
+
+    <div class="admin-content">
+
+        <div id="products-pane" class="tab-pane active">
+            <h3 id="productFormTitle">Tambahkan Produk Baru</h3>
+            <form id="productForm" class="admin-form">
+                <input type="hidden" id="productId">
+                <div class="form-group">
+                    <label for="productName">Nama Produk</label>
+                    <input type="text" id="productName" required>
+                </div>
+                <div class="form-group">
+                    <label for="productDescription">Deskripsi Produk</label>
+                    <textarea id="productDescription" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="productPrice">Harga (Rp)</label>
+                    <input type="number" id="productPrice" required>
+                </div>
+                <div class="form-group">
+                    <label for="productCashback">Estimasi Cashback (Rp)</label>
+                    <input type="number" id="productCashback" required>
+                </div>
+                <div class="form-group">
+                    <label for="productImage">Gambar Produk</label>
+                    <input type="file" id="productImage" accept="image/*">
+                </div>
+                <p style="font-size: 0.8em; color: #aaa;">Kosongkan jika tidak ingin mengganti gambar</p>
+                <h4>Link Afiliasi</h4>
+                <div class="form-group">
+                    <label for="linkTokopedia">Link Tokopedia</label>
+                    <input type="url" id="linkTokopedia">
+                </div>
+                <div class="form-group">
+                    <label for="linkShopee">Link Shopee</label>
+                    <input type="url" id="linkShopee">
+                </div>
+                <div class="form-group">
+                    <label for="linkLazada">Link Lazada</textarea>
+                    <input type="url" id="linkLazada">
+                </div>
+                <div class="form-group">
+                    <label for="linkBlibli">Link Blibli</label>
+                    <input type="url" id="linkBlibli">
+                </div>
+                <div class="form-group">
+                    <label for="linkTiktok">Link TikTok Shop</label>
+                    <input type="url" id="linkTiktok">
+                </div>
+                <button type="submit" class="submit-btn">Simpan Produk</button>
+                <div id="productStatus" class="form-status"></div>
+            </form>
+
+            <div class="item-list">
+                <h4>Daftar Produk</h4>
+                <table class="item-table">
+                    <thead>
+                        <tr>
+                            <th>Nama</th>
+                            <th>Harga</th>
+                            <th>Cashback</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="stores-pane" class="tab-pane">
+            <h3 id="storeFormTitle">Tambahkan Toko Baru</h3>
+            <form id="storeForm" class="admin-form">
+                <input type="hidden" id="storeId">
+                <div class="form-group">
+                    <label for="storeName">Nama Toko</label>
+                    <input type="text" id="storeName" required>
+                </div>
+                <div class="form-group">
+                    <label for="storeDescription">Deskripsi Toko</label>
+                    <textarea id="storeDescription" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="storeLogo">Logo Toko</label>
+                    <input type="file" id="storeLogo" accept="image/*">
+                </div>
+                <p style="font-size: 0.8em; color: #aaa;">Kosongkan jika tidak ingin mengganti gambar</p>
+                <h4>Link Afiliasi</h4>
+                <div class="form-group">
+                    <label for="storeLinkTokopedia">Link Tokopedia</label>
+                    <input type="url" id="storeLinkTokopedia">
+                </div>
+                <div class="form-group">
+                    <label for="storeLinkShopee">Link Shopee</label>
+                    <input type="url" id="storeLinkShopee">
+                </div>
+                <div class="form-group">
+                    <label for="storeLinkLazada">Link Lazada</label>
+                    <input type="url" id="storeLinkLazada">
+                </div>
+                <div class="form-group">
+                    <label for="storeLinkBlibli">Link Blibli</label>
+                    <input type="url" id="storeLinkBlibli">
+                </div>
+                <div class="form-group">
+                    <label for="storeLinkTiktok">Link TikTok Shop</label>
+                    <input type="url" id="storeLinkTiktok">
+                </div>
+                <button type="submit" class="submit-btn">Simpan Toko</button>
+                <div id="storeStatus" class="form-status"></div>
+            </form>
+
+            <div class="item-list">
+                <h4>Daftar Toko</h4>
+                <table class="item-table">
+                    <thead>
+                        <tr>
+                            <th>Nama</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="storesTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="promos-pane" class="tab-pane">
+            <h3 id="promoFormTitle">Tambahkan Promo Baru</h3>
+            <form id="promoForm" class="admin-form">
+                <input type="hidden" id="promoId">
+                <div class="form-group">
+                    <label for="promoTitle">Judul Promo</label>
+                    <input type="text" id="promoTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="promoDescription">Deskripsi Promo</label>
+                    <textarea id="promoDescription" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="promoImage">Gambar Promo</label>
+                    <input type="file" id="promoImage" accept="image/*">
+                </div>
+                <p style="font-size: 0.8em; color: #aaa;">Kosongkan jika tidak ingin mengganti gambar</p>
+                <h4>Link Afiliasi</h4>
+                <div class="form-group">
+                    <label for="promoLinkTokopedia">Link Tokopedia</label>
+                    <input type="url" id="promoLinkTokopedia">
+                </div>
+                <div class="form-group">
+                    <label for="promoLinkShopee">Link Shopee</label>
+                    <input type="url" id="promoLinkShopee">
+                </div>
+                <div class="form-group">
+                    <label for="promoLinkLazada">Link Lazada</label>
+                    <input type="url" id="promoLinkLazada">
+                </div>
+                <div class="form-group">
+                    <label for="promoLinkBlibli">Link Blibli</label>
+                    <input type="url" id="promoLinkBlibli">
+                </div>
+                <div class="form-group">
+                    <label for="promoLinkTiktok">Link TikTok Shop</label>
+                    <input type="url" id="promoLinkTiktok">
+                </div>
+                <button type="submit" class="submit-btn">Simpan Promo</button>
+                <div id="promoStatus" class="form-status"></div>
+            </form>
+            
+            <div class="item-list">
+                <h4>Daftar Promo</h4>
+                <table class="item-table">
+                    <thead>
+                        <tr>
+                            <th>Judul</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="promosTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="banners-pane" class="tab-pane">
+            <h3 id="bannerFormTitle">Tambahkan Banner Baru</h3>
+            <form id="bannerForm" class="admin-form">
+                <input type="hidden" id="bannerId">
+                <div class="form-group">
+                    <label for="bannerTitle">Judul Banner (Opsional)</label>
+                    <input type="text" id="bannerTitle">
+                </div>
+                <div class="form-group">
+                    <label for="bannerImage">Gambar Banner</label>
+                    <input type="file" id="bannerImage" accept="image/*">
+                </div>
+                <p style="font-size: 0.8em; color: #aaa;">Kosongkan jika tidak ingin mengganti gambar</p>
+                <div class="form-group">
+                    <label for="bannerLink">Link Tujuan</label>
+                    <input type="url" id="bannerLink" required>
+                </div>
+                <button type="submit" class="submit-btn">Simpan Banner</button>
+                <div id="bannerStatus" class="form-status"></div>
+            </form>
+
+            <div class="item-list">
+                <h4>Daftar Banner</h4>
+                <table class="item-table">
+                    <thead>
+                        <tr>
+                            <th>Judul</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bannersTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="members-pane" class="tab-pane">
+            <h3>Dashboard Member</h3>
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <h4>Total Member</h4>
+                    <p id="totalMembers">-</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Total Klik</h4>
+                    <p id="totalClicks">-</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Total Order Valid</h4>
+                    <p id="validOrders">-</p>
+                </div>
+            </div>
+            <div class="member-list">
+                <h4>Daftar Member</h4>
+                <table class="member-table">
+                    <thead>
+                        <tr>
+                            <th>Nama/Email</th>
+                            <th>Klik Link</th>
+                            <th>Order Pending</th>
+                            <th>Order Valid</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="memberList">
+                        </tbody>
+                </table>
+                <div id="loadingMemberStatus" style="text-align: center; color: #00ffff; margin-top: 20px;">Memuat data...</div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<nav class="navbar">
+    <a href="index.html">Beranda</a>
+    <a href="wallet.html">Wallet</a>
+    <a href="profile.html">Profil</a>
+</nav>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>

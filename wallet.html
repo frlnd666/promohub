@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromoHub - Wallet</title>
+    <link rel="stylesheet" href="css/styles.css">
+   
+</head>
+<body>
+
+<main class="wallet-container">
+    <h2>Wallet Anda</h2>
+    
+    <div class="balance-card">
+        <h3>Total Saldo Cashback</h3>
+        <p id="totalBalance">Rp 0</p>
+        <button id="withdrawBtn" class="withdraw-btn" disabled>Tarik Saldo</button>
+        <small style="display:block; margin-top:10px; color:#b0c4de;">Minimal penarikan: Rp 150.000</small>
+    </div>
+
+    <h3>Riwayat Transaksi</h3>
+    <div id="transactionHistory">
+        <div class="history-item approved">
+            <div>
+                <strong>Cashback dari Produk p001</strong>
+                <small style="display:block; color:#b0c4de;">15 Agustus 2025</small>
+            </div>
+            <strong style="color:#50fa7b;">+ Rp 25.000</strong>
+        </div>
+         <div class="history-item pending">
+            <div>
+                <strong>Klaim Produk p002</strong>
+                <small style="display:block; color:#b0c4de;">14 Agustus 2025</small>
+            </div>
+            <strong style="color:#f1fa8c;">Pending</strong>
+        </div>
+        <div class="history-item rejected">
+            <div>
+                <strong>Klaim Produk p003</strong>
+                <small style="display:block; color:#b0c4de;">13 Agustus 2025</small>
+            </div>
+            <strong style="color:#ff5555;">Ditolak</strong>
+        </div>
+        </div>
+</main>
+
+<nav class="navbar">
+    <a href="index.html">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 9L12 2L21 9V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V9Z" stroke="currentColor" stroke-width="2"/></svg>
+      Beranda
+    </a>
+    
+    <a href="wallet.html" class="active">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 7H3V5C3 3.89543 3.89543 3 5 3H19C20.1046 3 21 3.89543 21 5V7Z" stroke="currentColor" stroke-width="2"/><path d="M21 9V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V9H21Z" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="15" r="2" stroke="currentColor" stroke-width="2"/></svg>
+      Wallet
+    </a>
+    <a href="profile.html">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 21V17C4 15.8954 4.89543 15 6 15H18C19.1046 15 20 15.8954 20 17V21" stroke="currentColor" stroke-width="2"/></svg>
+      Profile
+    </a>
+  </nav>
+
+<script type="module" src="js/app.js"></script>
+<script type="module" src="js/wallet.js"></script>
+</body>
+</html>
