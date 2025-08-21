@@ -1,7 +1,4 @@
-// firebase-config.js
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore.js";
+
 
 export const firebaseConfig = {
   apiKey: "AIzaSyCpw9RcZeXoWr5qykB4awgbCC-MiVVma_M",
