@@ -1,4 +1,3 @@
-// promo-hub/api/upload.js
 import { IncomingForm } from 'formidable';
 import cloudinary from 'cloudinary';
 
