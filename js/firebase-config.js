@@ -10,6 +10,3 @@ export const firebaseConfig = {
   measurementId: "G-ND4NTZM0Q8"
 };
 
-
-
-export { auth, db };
