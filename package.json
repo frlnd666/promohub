@@ -1,7 +1,7 @@
 {
   "name": "promohub",
   "version": "1.0.0",
-  "description": "PromoHub - PWA Cashback dengan Firebase",
+  "description": "PromoHub - PWA Cashback webapp",
   "scripts": {
     "dev": "serve . -l 3000",
     "start": "serve .",
@@ -13,7 +13,7 @@
     "firebase",
     "promohub"
   ],
-  "author": "Your Name",
+  "author": "Ferlan F",
   "license": "MIT",
   "dependencies": {
     "serve": "^14.2.1"
