@@ -14,6 +14,26 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
+const memberList = document.getElementById("memberList");
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    // cek role di Firestore
+    const snap = await getDocs(collection(db, "users"));
+    const me = snap.docs.find(d => d.id === user.uid)?.data();
+    if (!me || me.role !== "admin") {
+      alert("Anda bukan admin!");
+      window.location.href = "/";
+      return;
+    }
+
+    loadMembers();
+  } else {
+    window.location.href = "/login.html";
+  }
+});
+
+
 const UPLOAD_ENDPOINT = 'https://promohub-beta.vercel.app/api/upload'; // GANTI DENGAN URL Vercel Anda
 const CHECK_ECOMOBI_STATUS_ENDPOINT = 'https://promohub-beta.vercel.app/api/check-ecomobi-status'; // GANTI DENGAN URL Vercel Anda
 const auth = getAuth(app);
