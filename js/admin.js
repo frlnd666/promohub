@@ -1,5 +1,6 @@
 // promohub/js/admin.js
 
+import { auth, db } from "./firebase-config.js";
 import { db, app } from './app.js';
 import {
   collection,
