@@ -4,8 +4,8 @@ import { db, app } from './app.js';
 import { collection, addDoc, serverTimestamp, getDocs, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-const UPLOAD_ENDPOINT = 'https://[nama-proyek-anda].vercel.app/api/upload'; // GANTI DENGAN URL Vercel Anda
-const CHECK_ECOMOBI_STATUS_ENDPOINT = 'https://[nama-proyek-anda].vercel.app/api/check-ecomobi-status'; // GANTI DENGAN URL Vercel Anda
+const UPLOAD_ENDPOINT = 'https://promohub-beta.vercel.app/api/upload'; // GANTI DENGAN URL Vercel Anda
+const CHECK_ECOMOBI_STATUS_ENDPOINT = 'https://promohub-beta.vercel.app/api/check-ecomobi-status'; // GANTI DENGAN URL Vercel Anda
 const auth = getAuth(app);
 
 // State untuk mode Edit
