@@ -13,22 +13,6 @@ export const firebaseConfig = {
   measurementId: "G-ND4NTZM0Q8"
 };
 
-// Buat dokumen user otomatis saat login
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    const userRef = doc(db, "users", user.uid);
-    const snap = await getDoc(userRef);
-    if (!snap.exists()) {
-      await setDoc(userRef, {
-        uid: user.uid,
-        email: user.email || "",
-        name: user.displayName || "User",
-        avatarUrl: user.photoURL || "/icons/default-avatar.png",
-        role: "member",
-        createdAt: serverTimestamp()
-      });
-    }
-  }
-});
+
 
 export { auth, db };
