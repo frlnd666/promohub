@@ -45,15 +45,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const order = doc.data();
                     const date = order.createdAt ? order.createdAt.toDate().toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
                     
-                    // Hanya pesanan yang disetujui ('approved') yang masuk ke saldo
-                    if (order.status === 'approved') {
+                    // Hanya pesanan yang valid yang masuk ke saldo
+                    if (order.status === 'valid') {
                         totalBalance += order.amount;
                     }
                     
                     // Tambahkan kelas CSS berdasarkan status transaksi
                     let statusClass = 'pending';
-                    if (order.status === 'approved') {
-                        statusClass = 'approved';
+                    if (order.status === 'valid') {
+                        statusClass = 'approved'; // Kelas CSS tetap 'approved' untuk styling, tapi logika status 'valid'
                     } else if (order.status === 'rejected') {
                         statusClass = 'rejected';
                     }
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <small style="display:block; color:#b0c4de;">${date}</small>
                         </div>
                         <strong style="text-transform: capitalize;">
-                            ${order.status === 'approved' ? `+ Rp ${order.amount.toLocaleString('id-ID')}` : order.status}
+                            ${order.status === 'valid' ? `+ Rp ${order.amount.toLocaleString('id-ID')}` : order.status}
                         </strong>
                     </div>`;
                 });
