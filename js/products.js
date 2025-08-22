@@ -1,60 +1,68 @@
 // promo-hub/js/products.js
 
+import { db } from './app.js';
+import { collection, getDocs, query, limit } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
 document.addEventListener('DOMContentLoaded', () => {
   // Cek nama file HTML yang sedang dibuka
   const currentPage = window.location.pathname.split('/').pop();
   
   if (currentPage === 'index.html' || currentPage === '') {
     // --- LOGIKA UNTUK HALAMAN UTAMA (HOMEPAGE) ---
-    // Muat 6 item untuk setiap seksi
-    loadItems('data/products.json', 'productsList', createProductCard, 6);
-    loadItems('data/stores.json', 'storesList', createStorePromoCard, 6);
-    loadItems('data/promos.json', 'promosList', createStorePromoCard, 6);
+    // Muat 6 item untuk setiap seksi dari Firestore
+    loadItems('products', 'productsList', createProductCard, 6);
+    loadItems('stores', 'storesList', createStorePromoCard, 6);
+    loadItems('promos', 'promosList', createStorePromoCard, 6);
     // Auto-slide untuk banner
     initBannerSlider();
     
   } else if (currentPage === 'products.html') {
     // --- LOGIKA UNTUK HALAMAN PRODUK ---
     // Muat semua produk tanpa batas
-    loadItems('data/products.json', 'fullProductsList', createProductCard);
+    loadItems('products', 'fullProductsList', createProductCard);
     
   } else if (currentPage === 'stores.html') {
     // --- LOGIKA UNTUK HALAMAN TOKO ---
-    loadItems('data/stores.json', 'fullStoresList', createStorePromoCard);
+    loadItems('stores', 'fullStoresList', createStorePromoCard);
     
   } else if (currentPage === 'promos.html') {
     // --- LOGIKA UNTUK HALAMAN PROMO ---
-    loadItems('data/promos.json', 'fullPromosList', createStorePromoCard);
+    loadItems('promos', 'fullPromosList', createStorePromoCard);
   }
 });
 
 /**
- * Fungsi umum untuk memuat item dari file JSON.
- * @param {string} jsonFile - Nama file JSON.
+ * Fungsi umum untuk memuat item dari Firestore.
+ * @param {string} collectionName - Nama koleksi Firestore ('products', 'stores', 'promos').
  * @param {string} elementId - ID elemen kontainer di HTML.
  * @param {function} cardCreator - Fungsi untuk membuat kartu HTML.
- * @param {number|null} limit - Batas jumlah item yang akan ditampilkan. Null berarti tanpa batas.
+ * @param {number|null} maxLimit - Batas jumlah item yang akan ditampilkan. Null berarti tanpa batas.
  */
-async function loadItems(jsonFile, elementId, cardCreator, limit = null) {
+async function loadItems(collectionName, elementId, cardCreator, maxLimit = null) {
   const container = document.getElementById(elementId);
   if (!container) return;
   
   try {
-    const response = await fetch(jsonFile);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const items = await response.json();
+    let q = query(collection(db, collectionName));
+    if (maxLimit) {
+      q = query(collection(db, collectionName), limit(maxLimit));
+    }
+    const snapshot = await getDocs(q);
+    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
     container.innerHTML = ''; // Kosongkan kontainer
     
-    // Terapkan batas jika ada, jika tidak, ambil semua item
-    const itemsToShow = limit ? items.slice(0, limit) : items;
+    if (items.length === 0) {
+      container.innerHTML = `<p style="color: #aaa; text-align: center;">Tidak ada data tersedia.</p>`;
+      return;
+    }
     
-    itemsToShow.forEach(item => {
+    items.forEach(item => {
       const card = cardCreator(item);
       container.appendChild(card);
     });
   } catch (error) {
-    console.error(`Gagal memuat ${jsonFile}:`, error);
+    console.error(`Gagal memuat ${collectionName}:`, error);
     container.innerHTML = `<p style="color: #ff5555; text-align: center;">Gagal memuat data.</p>`;
   }
 }
@@ -80,8 +88,8 @@ function createStorePromoCard(item) {
   const card = document.createElement('div');
   card.className = 'item-card';
   card.innerHTML = `
-    <img src="${item.image}" alt="${item.name}">
-    <h4>${item.name}</h4>
+    <img src="${item.image}" alt="${item.name || item.title}">
+    <h4>${item.name || item.title}</h4>
     <p>${item.description.substring(0, 30)}...</p>
     <button class="view-btn">Lihat Detail</button>
   `;
