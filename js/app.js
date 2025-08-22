@@ -102,3 +102,7 @@ const logoutUser = async () => {
 
 // Ekspor semua fungsi dan service yang dibutuhkan oleh file lain
 export { auth, app, db, registerUser, loginUser, signInWithGoogle, logoutUser };
+
+// FIXED: Tambahkan baris ini di paling bawah
+// Membuat fungsi logoutUser bisa diakses secara global oleh file lain seperti profile.js
+window.logoutUser = logoutUser;
