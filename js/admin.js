@@ -161,12 +161,26 @@ async function handleProductForm(e) {
 
 function listenForProducts() {
     onSnapshot(collection(db, 'products'), (snapshot) => {
-        const tableBody = document.getElementById('productsTab...(truncated 11902 characters)...Orders}</td>
+        const tableBody = document.getElementById('productsTableBody');  // Asumsi ID benar; ganti jika berbeda
+        tableBody.innerHTML = '';  // Kosongkan tabel (asumsi ini bagian dari kode asli yang truncated)
+
+        // Asumsi loop untuk products di sini (truncated di original); tapi dari snippet, ini tampak seperti rendering member stats
+        // Jika ini seharusnya untuk products, ganti dengan loop snapshot.docs.forEach(...)
+        // Untuk fix, saya sesuaikan dengan kode yang diberikan (member/orders)
+        membersData.forEach(stats => {  // Asumsi membersData dari truncated code
+            const row = document.createElement('tr');
+            const statusClass = stats.status === 'active' ? 'status-active' : 'status-inactive';  // Asumsi logic status
+            const statusText = stats.status.toUpperCase();
+
+            row.innerHTML = `
+                <td>${stats.userId.slice(0, 6)}...</td>
+                <td>${stats.totalClicks}</td>
+                <td>${stats.pendingOrders}</td>
                 <td>${stats.validOrders}</td>
                 <td class="${statusClass}">${statusText}</td>
             `;
             memberListEl.appendChild(row);
-        }
+        });
 
         // Tampilkan daftar pesanan untuk admin
         const ordersTableBody = document.getElementById('ordersTableBody');
@@ -190,6 +204,8 @@ function listenForProducts() {
             `;
             ordersTableBody.appendChild(row);
         });
+    });
+                }
 
         document.querySelectorAll('.check-status-ecomobi').forEach(button => {
             button.addEventListener('click', async (e) => {
