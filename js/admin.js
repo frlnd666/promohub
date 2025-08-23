@@ -1,565 +1,674 @@
-// promo-hub/js/admin.js
+// promohub/js/admin.js
 
-import { db, app } from './app.js';
-import { collection, addDoc, getDoc, serverTimestamp, getDocs, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+// ====== IMPORTS ======
+import { app, db, auth } from "./app.js";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  getDocs,
+  getDoc,
+  onSnapshot,
+  doc,
+  deleteDoc,
+  updateDoc,
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-const UPLOAD_ENDPOINT = 'https://promohub-beta.vercel.app/api/upload'; // GANTI DENGAN URL Vercel Anda
-const CHECK_ECOMOBI_STATUS_ENDPOINT = 'https://promohub-beta.vercel.app/api/check-ecomobi-status'; // GANTI DENGAN URL Vercel Anda
-const auth = getAuth(app);
+// ====== CONSTANTS ======
+const UPLOAD_ENDPOINT = "/api/upload"; // gunakan API Vercel milikmu
+const CHECK_ECOMOBI_STATUS_ENDPOINT = "/api/check-ecomobi-status"; // opsional, aman jika belum ada
 
-// State untuk mode Edit
+// ====== EDIT STATE ======
 let isEditing = { product: false, store: false, promo: false, banner: false };
 let currentId = { product: null, store: null, promo: null, banner: null };
 
-// Logika untuk menampilkan dan menyembunyikan tab
-document.addEventListener('DOMContentLoaded', () => {
-    const tabs = document.querySelectorAll('.admin-tab-btn');
-    const panes = document.querySelectorAll('.tab-pane');
-
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(item => item.classList.remove('active'));
-            panes.forEach(pane => pane.classList.remove('active'));
-            tab.classList.add('active');
-            const targetId = tab.getAttribute('data-tab') + '-pane';
-            document.getElementById(targetId).classList.add('active');
-
-            if (tab.getAttribute('data-tab') === 'members') {
-                loadMemberDashboard();
-            }
-        });
-    });
-
-    // Cek status autentikasi untuk akses admin
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        alert('Anda tidak memiliki akses ke halaman ini. Silakan login terlebih dahulu.');
-        window.location.replace('index.html');
+// ====== READY ======
+document.addEventListener("DOMContentLoaded", () => {
+  // Tab switching
+  const tabs = document.querySelectorAll(".admin-tab-btn");
+  const panes = document.querySelectorAll(".tab-pane");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("active"));
+      panes.forEach((p) => p.classList.remove("active"));
+      tab.classList.add("active");
+      const targetId = tab.getAttribute("data-tab") + "-pane";
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) targetEl.classList.add("active");
+      if (tab.getAttribute("data-tab") === "members") {
+        loadMemberDashboard();
       }
     });
+  });
 
-    // Event listeners untuk form
-    document.getElementById('productForm').addEventListener('submit', (e) => handleProductForm(e));
-    document.getElementById('storeForm').addEventListener('submit', (e) => handleStoreForm(e));
-    document.getElementById('promoForm').addEventListener('submit', (e) => handlePromoForm(e));
-    document.getElementById('bannerForm').addEventListener('submit', (e) => handleBannerForm(e));
+  // Auth guard + admin check
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      alert("Anda tidak memiliki akses ke halaman ini. Silakan login terlebih dahulu.");
+      window.location.replace("login.html");
+      return;
+    }
+    const isAdmin = await checkIfAdmin(user.uid);
+    if (!isAdmin) {
+      alert("❌ Akses admin diperlukan.");
+      window.location.replace("index.html");
+      return;
+    }
 
-    // Panggil fungsi untuk memuat data saat halaman dimuat
+    // listeners realtime
     listenForProducts();
     listenForStores();
     listenForPromos();
     listenForBanners();
+  });
+
+  // Form listeners (optional chaining agar aman bila elemen tak ada)
+  document.getElementById("productForm")?.addEventListener("submit", handleProductForm);
+  document.getElementById("storeForm")?.addEventListener("submit", handleStoreForm);
+  document.getElementById("promoForm")?.addEventListener("submit", handlePromoForm);
+  document.getElementById("bannerForm")?.addEventListener("submit", handleBannerForm);
 });
 
-// =========================================================
-// CRUD: FUNGSI BANTUAN
-// =========================================================
+// ====== HELPERS ======
+async function checkIfAdmin(uid) {
+  const ref = doc(db, "admins", uid);
+  const snap = await getDoc(ref);
+  return snap.exists();
+}
+
 function getAffiliateLinks(prefix) {
-    const links = {};
-    const platforms = ['Tokopedia', 'Shopee', 'Lazada', 'Blibli', 'Tiktok'];
-    platforms.forEach(platform => {
-        const inputId = `${prefix}Link${platform}`;
-        const inputElement = document.getElementById(inputId);
-        links[platform.toLowerCase()] = inputElement ? inputElement.value : '';
-    });
-    return links;
+  // prefix: '', 'store', 'promo' → input id: `${prefix}LinkTokopedia`, dst.
+  const links = {};
+  const platforms = ["Tokopedia", "Shopee", "Lazada", "Blibli", "Tiktok"];
+  platforms.forEach((platform) => {
+    const id = `${prefix ? prefix : ""}${prefix ? "Link" : "Link"}${platform}`;
+    const el = document.getElementById(id);
+    links[platform.toLowerCase()] = el ? (el.value || "") : "";
+  });
+  return links;
 }
 
 function setAffiliateLinks(links, prefix) {
-    const platforms = ['Tokopedia', 'Shopee', 'Lazada', 'Blibli', 'Tiktok'];
-    platforms.forEach(platform => {
-        const inputId = `${prefix}Link${platform}`;
-        const inputElement = document.getElementById(inputId);
-        if (inputElement && links) {
-            inputElement.value = links[platform.toLowerCase()] || '';
-        }
+  const platforms = ["Tokopedia", "Shopee", "Lazada", "Blibli", "Tiktok"];
+  platforms.forEach((platform) => {
+    const id = `${prefix ? prefix : ""}${prefix ? "Link" : "Link"}${platform}`;
+    const el = document.getElementById(id);
+    if (!el) return;
+    const key = platform.toLowerCase();
+    el.value = links?.[key] || "";
+  });
+}
+
+function toNumber(v) {
+  const n = typeof v === "string" ? v.replace(/[^\d.]/g, "") : v;
+  const out = Number(n);
+  return Number.isFinite(out) ? out : 0;
+}
+
+function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+async function uploadImage(fileOrBase64, statusDiv) {
+  try {
+    if (statusDiv) {
+      statusDiv.textContent = "Mengunggah gambar...";
+      statusDiv.className = "form-status info";
+    }
+
+    const base64 = typeof fileOrBase64 === "string" && fileOrBase64.startsWith("data:")
+      ? fileOrBase64
+      : await toBase64(fileOrBase64);
+
+    const res = await fetch(UPLOAD_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file: base64, folder: "promohub/banners" }),
     });
-}
 
-async function uploadImage(imageFile, statusDiv) {
-    if (!imageFile) {
-        return null;
-    }
-    statusDiv.textContent = 'Mengunggah gambar...';
-    statusDiv.className = 'form-status';
-
-    const formData = new FormData();
-    formData.append('file', imageFile);
-
+    const text = await res.text();
+    let data;
     try {
-        const uploadResponse = await fetch(UPLOAD_ENDPOINT, {
-            method: 'POST',
-            body: formData,
-        });
-
-        const uploadData = await uploadResponse.json();
-
-        if (!uploadResponse.ok) {
-            throw new Error(uploadData.message || 'Gagal mengunggah gambar');
-        }
-        
-        return uploadData.url;
-    } catch (error) {
-        throw new Error(`Gagal menghubungi server unggahan: ${error.message}`);
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`Upload API tidak mengembalikan JSON. Response: ${text}`);
     }
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || `Upload gagal dengan status ${res.status}`);
+    }
+    if (statusDiv) {
+      statusDiv.textContent = "✅ Gambar terunggah";
+      statusDiv.className = "form-status success";
+    }
+    return data.url;
+  } catch (err) {
+    if (statusDiv) {
+      statusDiv.textContent = `❌ Upload gagal: ${err.message}`;
+      statusDiv.className = "form-status error";
+    }
+    throw err;
+  }
 }
 
-// =========================================================
-// CRUD: PRODUCTS
-// =========================================================
+function attachEventListeners() {
+  document.querySelectorAll(".action-btn.edit").forEach((btn) => {
+    btn.removeEventListener("click", handleEditClick);
+    btn.addEventListener("click", handleEditClick);
+  });
+  document.querySelectorAll(".action-btn.delete").forEach((btn) => {
+    btn.removeEventListener("click", handleDeleteClick);
+    btn.addEventListener("click", handleDeleteClick);
+  });
+}
+
+// ====== PRODUCTS ======
 async function handleProductForm(e) {
-    e.preventDefault();
-    const statusDiv = document.getElementById('productStatus');
-    const name = document.getElementById('productName').value;
-    const description = document.getElementById('productDescription').value;
-    const price = document.getElementById('productPrice').value;
-    const cashback = document.getElementById('productCashback').value;
-    const imageFile = document.getElementById('productImage').files[0];
-    const links = getAffiliateLinks('');
+  e.preventDefault();
+  const statusDiv = document.getElementById("productStatus");
+  const name = document.getElementById("productName")?.value?.trim() || "";
+  const description = document.getElementById("productDescription")?.value?.trim() || "";
+  const price = toNumber(document.getElementById("productPrice")?.value || 0);
+  const cashback = toNumber(document.getElementById("productCashback")?.value || 0);
+  const imageFile = document.getElementById("productImage")?.files?.[0] || null;
+  const links = getAffiliateLinks("");
 
-    if (!name || !description || !price || !cashback) {
-        statusDiv.textContent = 'Semua field wajib diisi.';
-        statusDiv.className = 'form-status error';
-        return;
+  if (!name || !description) {
+    if (statusDiv) {
+      statusDiv.textContent = "Nama dan deskripsi wajib diisi.";
+      statusDiv.className = "form-status error";
+    }
+    return;
+  }
+
+  try {
+    let imageUrl = null;
+    if (imageFile) imageUrl = await uploadImage(imageFile, statusDiv);
+
+    const dataToSave = {
+      name,
+      description,
+      price,
+      cashback,
+      links,
+      updatedAt: serverTimestamp(),
+    };
+    if (imageUrl) dataToSave.image = imageUrl;
+
+    if (isEditing.product && currentId.product) {
+      await updateDoc(doc(db, "products", currentId.product), dataToSave);
+      if (statusDiv) statusDiv.textContent = "✅ Produk diperbarui!";
+    } else {
+      dataToSave.createdAt = serverTimestamp();
+      await addDoc(collection(db, "products"), dataToSave);
+      if (statusDiv) statusDiv.textContent = "✅ Produk disimpan!";
     }
 
-    try {
-        let imageUrl = null;
-        if (imageFile) {
-            imageUrl = await uploadImage(imageFile, statusDiv);
-        }
-
-        const dataToSave = {
-            title: name,
-            description: description,
-            price: Number(price),
-            cashback: Number(cashback),
-            links: links,
-            updatedAt: serverTimestamp()
-        };
-        if (imageUrl) {
-            dataToSave.image = imageUrl;
-        }
-
-        if (isEditing.product) {
-            await updateDoc(doc(db, 'products', currentId.product), dataToSave);
-            statusDiv.textContent = 'Produk berhasil diperbarui!';
-            isEditing.product = false;
-            currentId.product = null;
-            document.getElementById('productFormTitle').textContent = 'Tambahkan Produk Baru';
-        } else {
-            dataToSave.createdAt = serverTimestamp();
-            await addDoc(collection(db, 'products'), dataToSave);
-            statusDiv.textContent = 'Produk berhasil disimpan!';
-        }
-        statusDiv.className = 'form-status success';
-        e.target.reset();
-        
-    } catch (error) {
-        console.error("Error:", error);
-        statusDiv.textContent = `Gagal menyimpan: ${error.message}`;
-        statusDiv.className = 'form-status error';
+    if (statusDiv) statusDiv.className = "form-status success";
+    // reset
+    document.getElementById("productForm")?.reset();
+    isEditing.product = false;
+    currentId.product = null;
+    document.getElementById("productFormTitle") && (document.getElementById("productFormTitle").textContent = "Tambah Produk Baru");
+  } catch (err) {
+    console.error(err);
+    if (statusDiv) {
+      statusDiv.textContent = `❌ Gagal menyimpan: ${err.message}`;
+      statusDiv.className = "form-status error";
     }
+  }
 }
 
 function listenForProducts() {
-    onSnapshot(collection(db, 'products'), (snapshot) => {
-        const tableBody = document.getElementById('productsTableBody');
-        tableBody.innerHTML = '';
-        snapshot.docs.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${product.title}</td>
-                <td>Rp ${product.price.toLocaleString('id-ID')}</td>
-                <td>Rp ${product.cashback.toLocaleString('id-ID')}</td>
-                <td>
-                    <button class="action-btn edit" data-id="${product.id}" data-type="product">Edit</button>
-                    <button class="action-btn delete" data-id="${product.id}" data-type="product">Hapus</button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
-        attachEventListeners();
+  const tbody = document.getElementById("productsTableBody");
+  if (!tbody) return;
+  onSnapshot(collection(db, "products"), (snap) => {
+    tbody.innerHTML = "";
+    snap.forEach((docSnap) => {
+      const p = { id: docSnap.id, ...docSnap.data() };
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.name || "-"}</td>
+        <td>${Number.isFinite(p.price) ? p.price : "-"}</td>
+        <td>${Number.isFinite(p.cashback) ? p.cashback : "-"}</td>
+        <td>
+          <button class="action-btn edit" data-id="${p.id}" data-type="product">Edit</button>
+          <button class="action-btn delete" data-id="${p.id}" data-type="product">Hapus</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
     });
+    attachEventListeners();
+  });
 }
 
-// =========================================================
-// CRUD: STORES
-// =========================================================
+// ====== STORES ======
 async function handleStoreForm(e) {
-    e.preventDefault();
-    const statusDiv = document.getElementById('storeStatus');
-    const name = document.getElementById('storeName').value;
-    const description = document.getElementById('storeDescription').value;
-    const imageFile = document.getElementById('storeLogo').files[0];
-    const links = getAffiliateLinks('store');
+  e.preventDefault();
+  const statusDiv = document.getElementById("storeStatus");
+  const name = document.getElementById("storeName")?.value?.trim() || "";
+  const description = document.getElementById("storeDescription")?.value?.trim() || "";
+  const logoFile = document.getElementById("storeLogo")?.files?.[0] || null;
+  const links = getAffiliateLinks("store");
 
-    if (!name || !description) {
-        statusDiv.textContent = 'Nama dan deskripsi harus diisi.';
-        statusDiv.className = 'form-status error';
-        return;
+  if (!name || !description) {
+    if (statusDiv) {
+      statusDiv.textContent = "Nama & deskripsi toko wajib diisi.";
+      statusDiv.className = "form-status error";
+    }
+    return;
+  }
+
+  try {
+    let logoUrl = null;
+    if (logoFile) logoUrl = await uploadImage(logoFile, statusDiv);
+
+    const dataToSave = {
+      name,
+      description,
+      links,
+      updatedAt: serverTimestamp(),
+    };
+    if (logoUrl) dataToSave.logo = logoUrl;
+
+    if (isEditing.store && currentId.store) {
+      await updateDoc(doc(db, "stores", currentId.store), dataToSave);
+      if (statusDiv) statusDiv.textContent = "✅ Toko diperbarui!";
+    } else {
+      dataToSave.createdAt = serverTimestamp();
+      await addDoc(collection(db, "stores"), dataToSave);
+      if (statusDiv) statusDiv.textContent = "✅ Toko disimpan!";
     }
 
-    try {
-        let imageUrl = null;
-        if (imageFile) {
-            imageUrl = await uploadImage(imageFile, statusDiv);
-        }
-        
-        const dataToSave = {
-            name: name,
-            description: description,
-            links: links,
-            updatedAt: serverTimestamp()
-        };
-        if (imageUrl) {
-            dataToSave.image = imageUrl;
-        }
-
-        if (isEditing.store) {
-            await updateDoc(doc(db, 'stores', currentId.store), dataToSave);
-            statusDiv.textContent = 'Toko berhasil diperbarui!';
-            isEditing.store = false;
-            currentId.store = null;
-            document.getElementById('storeFormTitle').textContent = 'Tambahkan Toko Baru';
-        } else {
-            dataToSave.createdAt = serverTimestamp();
-            await addDoc(collection(db, 'stores'), dataToSave);
-            statusDiv.textContent = 'Toko berhasil disimpan!';
-        }
-        statusDiv.className = 'form-status success';
-        e.target.reset();
-        
-    } catch (error) {
-        console.error("Error:", error);
-        statusDiv.textContent = `Gagal menyimpan: ${error.message}`;
-        statusDiv.className = 'form-status error';
+    if (statusDiv) statusDiv.className = "form-status success";
+    document.getElementById("storeForm")?.reset();
+    isEditing.store = false;
+    currentId.store = null;
+    document.getElementById("storeFormTitle") && (document.getElementById("storeFormTitle").textContent = "Tambahkan Toko Baru");
+  } catch (err) {
+    console.error(err);
+    if (statusDiv) {
+      statusDiv.textContent = `❌ Gagal menyimpan: ${err.message}`;
+      statusDiv.className = "form-status error";
     }
+  }
 }
 
 function listenForStores() {
-    onSnapshot(collection(db, 'stores'), (snapshot) => {
-        const tableBody = document.getElementById('storesTableBody');
-        tableBody.innerHTML = '';
-        snapshot.docs.forEach(doc => {
-            const store = { id: doc.id, ...doc.data() };
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${store.name}</td>
-                <td>
-                    <button class="action-btn edit" data-id="${store.id}" data-type="store">Edit</button>
-                    <button class="action-btn delete" data-id="${store.id}" data-type="store">Hapus</button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
-        attachEventListeners();
+  const tbody = document.getElementById("storesTableBody");
+  if (!tbody) return;
+  onSnapshot(collection(db, "stores"), (snap) => {
+    tbody.innerHTML = "";
+    snap.forEach((docSnap) => {
+      const s = { id: docSnap.id, ...docSnap.data() };
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${s.name || "-"}</td>
+        <td>${(s.links?.tokopedia || s.links?.shopee || s.links?.lazada || s.links?.blibli || s.links?.tiktok) ? "✓" : "-"}</td>
+        <td>
+          <button class="action-btn edit" data-id="${s.id}" data-type="store">Edit</button>
+          <button class="action-btn delete" data-id="${s.id}" data-type="store">Hapus</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
     });
+    attachEventListeners();
+  });
 }
 
-// =========================================================
-// CRUD: PROMOS
-// =========================================================
+// ====== PROMOS ======
 async function handlePromoForm(e) {
-    e.preventDefault();
-    const statusDiv = document.getElementById('promoStatus');
-    const title = document.getElementById('promoTitle').value;
-    const description = document.getElementById('promoDescription').value;
-    const imageFile = document.getElementById('promoImage').files[0];
-    const links = getAffiliateLinks('promo');
+  e.preventDefault();
+  const statusDiv = document.getElementById("promoStatus");
+  const title = document.getElementById("promoTitle")?.value?.trim() || "";
+  const description = document.getElementById("promoDescription")?.value?.trim() || "";
+  const imageFile = document.getElementById("promoImage")?.files?.[0] || null;
+  const links = getAffiliateLinks("promo");
 
-    if (!title || !description) {
-        statusDiv.textContent = 'Judul dan deskripsi harus diisi.';
-        statusDiv.className = 'form-status error';
-        return;
+  if (!title || !description) {
+    if (statusDiv) {
+      statusDiv.textContent = "Judul & deskripsi promo wajib diisi.";
+      statusDiv.className = "form-status error";
+    }
+    return;
+  }
+
+  try {
+    let imageUrl = null;
+    if (imageFile) imageUrl = await uploadImage(imageFile, statusDiv);
+
+    const dataToSave = {
+      title,
+      description,
+      links,
+      updatedAt: serverTimestamp(),
+    };
+    if (imageUrl) dataToSave.image = imageUrl;
+
+    if (isEditing.promo && currentId.promo) {
+      await updateDoc(doc(db, "promos", currentId.promo), dataToSave);
+      if (statusDiv) statusDiv.textContent = "✅ Promo diperbarui!";
+    } else {
+      dataToSave.createdAt = serverTimestamp();
+      await addDoc(collection(db, "promos"), dataToSave);
+      if (statusDiv) statusDiv.textContent = "✅ Promo disimpan!";
     }
 
-    try {
-        let imageUrl = null;
-        if (imageFile) {
-            imageUrl = await uploadImage(imageFile, statusDiv);
-        }
-
-        const dataToSave = {
-            title: title,
-            description: description,
-            links: links,
-            updatedAt: serverTimestamp()
-        };
-        if (imageUrl) {
-            dataToSave.image = imageUrl;
-        }
-        
-        if (isEditing.promo) {
-            await updateDoc(doc(db, 'promos', currentId.promo), dataToSave);
-            statusDiv.textContent = 'Promo berhasil diperbarui!';
-            isEditing.promo = false;
-            currentId.promo = null;
-            document.getElementById('promoFormTitle').textContent = 'Tambahkan Promo Baru';
-        } else {
-            dataToSave.createdAt = serverTimestamp();
-            await addDoc(collection(db, 'promos'), dataToSave);
-            statusDiv.textContent = 'Promo berhasil disimpan!';
-        }
-        statusDiv.className = 'form-status success';
-        e.target.reset();
-        
-    } catch (error) {
-        console.error("Error:", error);
-        statusDiv.textContent = `Gagal menyimpan: ${error.message}`;
-        statusDiv.className = 'form-status error';
+    if (statusDiv) statusDiv.className = "form-status success";
+    document.getElementById("promoForm")?.reset();
+    isEditing.promo = false;
+    currentId.promo = null;
+    document.getElementById("promoFormTitle") && (document.getElementById("promoFormTitle").textContent = "Tambahkan Promo Baru");
+  } catch (err) {
+    console.error(err);
+    if (statusDiv) {
+      statusDiv.textContent = `❌ Gagal menyimpan: ${err.message}`;
+      statusDiv.className = "form-status error";
     }
+  }
 }
 
 function listenForPromos() {
-    onSnapshot(collection(db, 'promos'), (snapshot) => {
-        const tableBody = document.getElementById('promosTableBody');
-        tableBody.innerHTML = '';
-        snapshot.docs.forEach(doc => {
-            const promo = { id: doc.id, ...doc.data() };
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${promo.title}</td>
-                <td>
-                    <button class="action-btn edit" data-id="${promo.id}" data-type="promo">Edit</button>
-                    <button class="action-btn delete" data-id="${promo.id}" data-type="promo">Hapus</button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
-        attachEventListeners();
+  const tbody = document.getElementById("promosTableBody");
+  if (!tbody) return;
+  onSnapshot(collection(db, "promos"), (snap) => {
+    tbody.innerHTML = "";
+    snap.forEach((docSnap) => {
+      const p = { id: docSnap.id, ...docSnap.data() };
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.title || "-"}</td>
+        <td>
+          <button class="action-btn edit" data-id="${p.id}" data-type="promo">Edit</button>
+          <button class="action-btn delete" data-id="${p.id}" data-type="promo">Hapus</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
     });
+    attachEventListeners();
+  });
 }
 
-// =========================================================
-// CRUD: BANNERS
-// =========================================================
+// ====== BANNERS ======
 async function handleBannerForm(e) {
-    e.preventDefault();
-    const statusDiv = document.getElementById('bannerStatus');
-    const title = document.getElementById('bannerTitle').value;
-    const imageFile = document.getElementById('bannerImage').files[0];
-    const link = document.getElementById('bannerLink').value;
+  e.preventDefault();
+  const statusDiv = document.getElementById("bannerStatus");
+  const title = document.getElementById("bannerTitle")?.value?.trim() || "";
+  const link = document.getElementById("bannerLink")?.value?.trim() || "";
+  const imageFile = document.getElementById("bannerImage")?.files?.[0] || null;
 
-    if (!link) {
-        statusDiv.textContent = 'Link wajib diisi.';
-        statusDiv.className = 'form-status error';
-        return;
+  if (!title) {
+    if (statusDiv) {
+      statusDiv.textContent = "Judul banner wajib diisi.";
+      statusDiv.className = "form-status error";
+    }
+    return;
+  }
+
+  try {
+    let imageUrl = null;
+    if (imageFile) imageUrl = await uploadImage(imageFile, statusDiv);
+
+    const dataToSave = {
+      title,
+      link: link || "",
+      updatedAt: serverTimestamp(),
+    };
+    if (imageUrl) dataToSave.image = imageUrl;
+
+    if (isEditing.banner && currentId.banner) {
+      await updateDoc(doc(db, "banners", currentId.banner), dataToSave);
+      if (statusDiv) statusDiv.textContent = "✅ Banner diperbarui!";
+    } else {
+      dataToSave.createdAt = serverTimestamp();
+      await addDoc(collection(db, "banners"), dataToSave);
+      if (statusDiv) statusDiv.textContent = "✅ Banner disimpan!";
     }
 
-    try {
-        let imageUrl = null;
-        if (imageFile) {
-            imageUrl = await uploadImage(imageFile, statusDiv);
-        }
-        
-        const dataToSave = {
-            title: title || '',
-            link: link,
-            updatedAt: serverTimestamp()
-        };
-        if (imageUrl) {
-            dataToSave.image = imageUrl;
-        }
-
-        if (isEditing.banner) {
-            await updateDoc(doc(db, 'banners', currentId.banner), dataToSave);
-            statusDiv.textContent = 'Banner berhasil diperbarui!';
-            isEditing.banner = false;
-            currentId.banner = null;
-            document.getElementById('bannerFormTitle').textContent = 'Tambahkan Banner Baru';
-        } else {
-            if (!imageFile) {
-                statusDiv.textContent = 'Gambar banner wajib diisi untuk unggahan baru.';
-                statusDiv.className = 'form-status error';
-                return;
-            }
-            dataToSave.createdAt = serverTimestamp();
-            await addDoc(collection(db, 'banners'), dataToSave);
-            statusDiv.textContent = 'Banner berhasil disimpan!';
-        }
-        statusDiv.className = 'form-status success';
-        e.target.reset();
-        
-    } catch (error) {
-        console.error("Error:", error);
-        statusDiv.textContent = `Gagal menyimpan: ${error.message}`;
-        statusDiv.className = 'form-status error';
+    if (statusDiv) statusDiv.className = "form-status success";
+    document.getElementById("bannerForm")?.reset();
+    isEditing.banner = false;
+    currentId.banner = null;
+    document.getElementById("bannerFormTitle") && (document.getElementById("bannerFormTitle").textContent = "Tambahkan Banner");
+  } catch (err) {
+    console.error(err);
+    if (statusDiv) {
+      statusDiv.textContent = `❌ Gagal menyimpan: ${err.message}`;
+      statusDiv.className = "form-status error";
     }
+  }
 }
 
 function listenForBanners() {
-    onSnapshot(collection(db, 'banners'), (snapshot) => {
-        const tableBody = document.getElementById('bannersTableBody');
-        tableBody.innerHTML = '';
-        snapshot.docs.forEach(doc => {
-            const banner = { id: doc.id, ...doc.data() };
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${banner.title || 'Banner tanpa judul'}</td>
-                <td>
-                    <button class="action-btn edit" data-id="${banner.id}" data-type="banner">Edit</button>
-                    <button class="action-btn delete" data-id="${banner.id}" data-type="banner">Hapus</button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
-        attachEventListeners();
+  const tbody = document.getElementById("bannersTableBody");
+  if (!tbody) return;
+  onSnapshot(collection(db, "banners"), (snap) => {
+    tbody.innerHTML = "";
+    snap.forEach((docSnap) => {
+      const b = { id: docSnap.id, ...docSnap.data() };
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${b.title || "-"}</td>
+        <td>${b.link ? `<a href="${b.link}" target="_blank" rel="noopener">Link</a>` : "-"}</td>
+        <td>
+          <button class="action-btn edit" data-id="${b.id}" data-type="banner">Edit</button>
+          <button class="action-btn delete" data-id="${b.id}" data-type="banner">Hapus</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
     });
+    attachEventListeners();
+  });
 }
 
-// =========================================================
-// DASHBOARD MEMBER
-// =========================================================
+// ====== DASHBOARD MEMBERS & ORDERS ======
 async function loadMemberDashboard() {
-    const totalMembersEl = document.getElementById('totalMembers');
-    const totalClicksEl = document.getElementById('totalClicks');
-    const validOrdersEl = document.getElementById('validOrders');
-    const memberListEl = document.getElementById('memberList');
-    const loadingStatusEl = document.getElementById('loadingMemberStatus');
-    
-    totalMembersEl.textContent = '-';
-    totalClicksEl.textContent = '-';
-    validOrdersEl.textContent = '-';
-    memberListEl.innerHTML = '';
-    loadingStatusEl.style.display = 'block';
+  const totalMembersEl = document.getElementById("totalMembers");
+  const totalClicksEl = document.getElementById("totalClicks");
+  const validOrdersEl = document.getElementById("validOrders");
+  const memberListEl = document.getElementById("memberList");
+  const loadingStatusEl = document.getElementById("loadingMemberStatus");
+  const ordersTableBody = document.getElementById("ordersTableBody");
 
-    try {
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const clicksSnapshot = await getDocs(collection(db, 'clicks'));
-        const ordersSnapshot = await getDocs(collection(db, 'orders'));
-        
-        const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const clicksData = clicksSnapshot.docs.map(doc => doc.data());
-        const ordersData = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        totalMembersEl.textContent = usersData.length;
-        totalClicksEl.textContent = clicksData.length;
-        validOrdersEl.textContent = ordersData.filter(order => order.status === 'valid').length;
-        
-        const memberStats = {};
-        usersData.forEach(user => {
-            memberStats[user.id] = {
-                name: user.displayName || user.email,
-                clicks: 0,
-                pendingOrders: 0,
-                validOrders: 0,
-                status: user.status || 'pending'
-            };
-        });
-        
-        clicksData.forEach(click => {
-            if (memberStats[click.userId]) {
-                memberStats[click.userId].clicks++;
-            }
-        });
-        
-        ordersData.forEach(order => {
-            if (memberStats[order.userId]) {
-                if (order.status === 'pending') {
-                    memberStats[order.userId].pendingOrders++;
-                } else if (order.status === 'valid') {
-                    memberStats[order.userId].validOrders++;
-                }
-            }
-        });
-        
-        memberListEl.innerHTML = ''; // Clear list before populating
-        for (const userId in memberStats) {
-            const stats = memberStats[userId];
-            const row = document.createElement('tr');
-            const statusClass = stats.status === 'valid' ? 'status-valid' : 'status-pending';
-            const statusText = stats.status === 'valid' ? 'VALID' : 'PENDING';
-            
-            row.innerHTML = `
-                <td>${stats.name}</td>
-                <td>${stats.clicks}</td>
-                <td>${stats.pendingOrders}</td>
-                <td>${stats.validOrders}</td>
-                <td class="${statusClass}">${statusText}</td>
-            `;
-            memberListEl.appendChild(row);
-        }
+  if (totalMembersEl) totalMembersEl.textContent = "-";
+  if (totalClicksEl) totalClicksEl.textContent = "-";
+  if (validOrdersEl) validOrdersEl.textContent = "-";
+  if (memberListEl) memberListEl.innerHTML = "";
+  if (ordersTableBody) ordersTableBody.innerHTML = "";
+  if (loadingStatusEl) loadingStatusEl.style.display = "block";
 
-    } catch (error) {
-        console.error("Gagal memuat data member:", error);
-        memberListEl.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Gagal memuat data.</td></tr>`;
-    } finally {
-        loadingStatusEl.style.display = 'none';
+  try {
+    const [usersSnapshot, clicksSnapshot, ordersSnapshot] = await Promise.all([
+      getDocs(collection(db, "users")),
+      getDocs(collection(db, "clicks")),
+      getDocs(collection(db, "orders")),
+    ]);
+
+    const users = usersSnapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const clicks = clicksSnapshot.docs.map((d) => d.data());
+    const orders = ordersSnapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    if (totalMembersEl) totalMembersEl.textContent = String(users.length);
+    if (totalClicksEl) totalClicksEl.textContent = String(clicks.length);
+    if (validOrdersEl) validOrdersEl.textContent = String(orders.filter((o) => o.status === "valid").length);
+
+    // Aggregate member stats
+    const memberStats = {};
+    users.forEach((u) => {
+      memberStats[u.id] = {
+        name: u.name || u.email || u.id,
+        clicks: 0,
+        pendingOrders: 0,
+        validOrders: 0,
+        rejectedOrders: 0,
+        status: u.status || "pending",
+      };
+    });
+    clicks.forEach((c) => {
+      if (c?.userId && memberStats[c.userId]) {
+        memberStats[c.userId].clicks++;
+      }
+    });
+    orders.forEach((o) => {
+      if (!o?.userId || !memberStats[o.userId]) return;
+      if (o.status === "pending") memberStats[o.userId].pendingOrders++;
+      else if (o.status === "valid") memberStats[o.userId].validOrders++;
+      else if (o.status === "rejected") memberStats[o.userId].rejectedOrders++;
+    });
+
+    // Render member table
+    if (memberListEl) {
+      memberListEl.innerHTML = "";
+      Object.entries(memberStats).forEach(([uid, stats]) => {
+        const tr = document.createElement("tr");
+        const statusClass =
+          stats.status === "approved" ? "status-approved" :
+          stats.status === "rejected" ? "status-rejected" : "status-pending";
+        tr.innerHTML = `
+          <td>${stats.name}</td>
+          <td>${stats.clicks}</td>
+          <td>${stats.pendingOrders}</td>
+          <td>${stats.validOrders}</td>
+          <td class="${statusClass}">${stats.status}</td>
+        `;
+        memberListEl.appendChild(tr);
+      });
     }
+
+    // Render orders for admin
+    if (ordersTableBody) {
+      ordersTableBody.innerHTML = "";
+      orders.forEach((o) => {
+        const tr = document.createElement("tr");
+        const statusClass =
+          o.status === "valid" ? "status-approved" :
+          o.status === "rejected" ? "status-rejected" : "status-pending";
+        tr.innerHTML = `
+          <td>${o.id}</td>
+          <td>${o.userId || "-"}</td>
+          <td>${o.productId || "-"}</td>
+          <td class="${statusClass}">${o.status || "pending"}</td>
+          <td>
+            <button class="btn small check-status-ecomobi" data-order-id="${o.id}">Cek Ecomobi</button>
+          </td>
+        `;
+        ordersTableBody.appendChild(tr);
+      });
+
+      // Action: check ecomobi
+      document.querySelectorAll(".check-status-ecomobi").forEach((btn) => {
+        btn.addEventListener("click", async (ev) => {
+          const orderId = ev.currentTarget.getAttribute("data-order-id");
+          const s = document.getElementById("loadingMemberStatus");
+          if (s) {
+            s.textContent = "Memeriksa status Ecomobi...";
+            s.style.display = "block";
+          }
+          try {
+            const res = await fetch(CHECK_ECOMOBI_STATUS_ENDPOINT, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId }),
+            });
+            if (res.status === 404) {
+              alert("Endpoint /api/check-ecomobi-status belum tersedia di project Vercel kamu.");
+              return;
+            }
+            const data = await res.json().catch(() => null);
+            if (res.ok && data?.success) {
+              alert(data.message || "Status diperbarui.");
+            } else {
+              alert(data?.message || `Gagal memeriksa status. HTTP ${res.status}`);
+            }
+          } catch (err) {
+            alert("Gagal menghubungi server: " + err.message);
+          } finally {
+            await loadMemberDashboard();
+            if (s) s.style.display = "none";
+          }
+        });
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Gagal memuat dashboard: " + err.message);
+  } finally {
+    if (loadingStatusEl) loadingStatusEl.style.display = "none";
+  }
 }
 
-
-// =========================================================
-// ATTACH EVENT LISTENERS (EDIT & DELETE)
-// =========================================================
-function attachEventListeners() {
-    document.querySelectorAll('.action-btn.edit').forEach(button => {
-        button.removeEventListener('click', handleEditClick);
-        button.addEventListener('click', handleEditClick);
-    });
-    
-    document.querySelectorAll('.action-btn.delete').forEach(button => {
-        button.removeEventListener('click', handleDeleteClick);
-        button.addEventListener('click', handleDeleteClick);
-    });
-}
-
+// ====== EDIT/DELETE HANDLERS ======
 async function handleEditClick(e) {
-    const itemId = e.target.dataset.id;
-    const itemType = e.target.dataset.type;
-    const docRef = doc(db, `${itemType}s`, itemId);
-    
-    try {
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const itemData = docSnap.data();
-            
-            isEditing[itemType] = true;
-            currentId[itemType] = itemId;
-            document.getElementById(`${itemType}FormTitle`).textContent = `Edit ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`;
-            
-            if (itemType === 'product') {
-                document.getElementById('productName').value = itemData.title;
-                document.getElementById('productDescription').value = itemData.description;
-                document.getElementById('productPrice').value = itemData.price;
-                document.getElementById('productCashback').value = itemData.cashback;
-                setAffiliateLinks(itemData.links, '');
-            } else if (itemType === 'store') {
-                document.getElementById('storeName').value = itemData.name;
-                document.getElementById('storeDescription').value = itemData.description;
-                setAffiliateLinks(itemData.links, 'store');
-            } else if (itemType === 'promo') {
-                document.getElementById('promoTitle').value = itemData.title;
-                document.getElementById('promoDescription').value = itemData.description;
-                setAffiliateLinks(itemData.links, 'promo');
-            } else if (itemType === 'banner') {
-                document.getElementById('bannerTitle').value = itemData.title;
-                document.getElementById('bannerLink').value = itemData.link;
-            }
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    } catch (error) {
-        console.error("Error fetching data for edit:", error);
-        alert('Gagal memuat data untuk diedit.');
+  const itemId = e.currentTarget.getAttribute("data-id");
+  const itemType = e.currentTarget.getAttribute("data-type"); // product | store | promo | banner
+  const ref = doc(db, `${itemType}s`, itemId);
+  try {
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      alert("Data tidak ditemukan.");
+      return;
     }
+    const data = snap.data();
+
+    if (itemType === "product") {
+      isEditing.product = true;
+      currentId.product = itemId;
+      document.getElementById("productFormTitle") && (document.getElementById("productFormTitle").textContent = "Edit Produk");
+      document.getElementById("productName") && (document.getElementById("productName").value = data.name || "");
+      document.getElementById("productDescription") && (document.getElementById("productDescription").value = data.description || "");
+      document.getElementById("productPrice") && (document.getElementById("productPrice").value = data.price ?? "");
+      document.getElementById("productCashback") && (document.getElementById("productCashback").value = data.cashback ?? "");
+      setAffiliateLinks(data.links, "");
+    }
+
+    if (itemType === "store") {
+      isEditing.store = true;
+      currentId.store = itemId;
+      document.getElementById("storeFormTitle") && (document.getElementById("storeFormTitle").textContent = "Edit Toko");
+      document.getElementById("storeName") && (document.getElementById("storeName").value = data.name || "");
+      document.getElementById("storeDescription") && (document.getElementById("storeDescription").value = data.description || "");
+      setAffiliateLinks(data.links, "store");
+    }
+
+    if (itemType === "promo") {
+      isEditing.promo = true;
+      currentId.promo = itemId;
+      document.getElementById("promoFormTitle") && (document.getElementById("promoFormTitle").textContent = "Edit Promo");
+      document.getElementById("promoTitle") && (document.getElementById("promoTitle").value = data.title || "");
+      document.getElementById("promoDescription") && (document.getElementById("promoDescription").value = data.description || "");
+      setAffiliateLinks(data.links, "promo");
+    }
+
+    if (itemType === "banner") {
+      isEditing.banner = true;
+      currentId.banner = itemId;
+      document.getElementById("bannerFormTitle") && (document.getElementById("bannerFormTitle").textContent = "Edit Banner");
+      document.getElementById("bannerTitle") && (document.getElementById("bannerTitle").value = data.title || "");
+      document.getElementById("bannerLink") && (document.getElementById("bannerLink").value = data.link || "");
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (err) {
+    console.error(err);
+    alert("Gagal memuat data untuk diedit: " + err.message);
+  }
 }
 
 async function handleDeleteClick(e) {
-    const itemId = e.target.dataset.id;
-    const itemType = e.target.dataset.type;
-    
-    if (confirm(`Apakah Anda yakin ingin menghapus ${itemType} ini?`)) {
-        try {
-            await deleteDoc(doc(db, `${itemType}s`, itemId));
-            alert(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} berhasil dihapus.`);
-        } catch (error) {
-            // FIXED: Menambahkan penanganan error yang lebih baik
-            console.error(`Gagal menghapus ${itemType}:`, error);
-            alert(`Terjadi kesalahan saat menghapus ${itemType}. Silakan coba lagi.`);
-        }
-    }
+  const itemId = e.currentTarget.getAttribute("data-id");
+  const itemType = e.currentTarget.getAttribute("data-type");
+  if (!itemId || !itemType) return;
+  if (!confirm(`Hapus ${itemType} ini?`)) return;
+  try {
+    await deleteDoc(doc(db, `${itemType}s`, itemId));
+    alert(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} berhasil dihapus.`);
+  } catch (err) {
+    console.error(err);
+    alert("Gagal menghapus: " + err.message);
+  }
 }
