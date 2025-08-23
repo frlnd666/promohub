@@ -1,4 +1,3 @@
-// api/upload.js
 import { v2 as cloudinary } from 'cloudinary';
 
 cloudinary.config({
@@ -41,7 +40,5 @@ export default async function handler(req, res) {
 }
 
 export const config = {
-  api: {
-    bodyParser: { sizeLimit: '10mb' },
-  },
+  api: { bodyParser: { sizeLimit: '10mb' } },
 };
