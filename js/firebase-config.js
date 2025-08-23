@@ -1,3 +1,8 @@
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+
 export const firebaseConfig = {
   apiKey: "AIzaSyCpw9RcZeXoWr5qykB4awgbCC-MiVVma_M",
   authDomain: "promohub-666.firebaseapp.com",
@@ -8,3 +13,12 @@ export const firebaseConfig = {
   measurementId: "G-ND4NTZM0Q8"
 };
 
+// Inisialisasi Firebase
+const app = initializeApp(firebaseConfig);
+
+// Ekspor service yang dipakai
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+export { app, auth, db, storage };
