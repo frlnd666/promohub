@@ -1,7 +1,7 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getAuth }       from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { getFirestore }  from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getStorage }    from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCpw9RcZeXoWr5qykB4awgbCC-MiVVma_M",
@@ -13,12 +13,11 @@ const firebaseConfig = {
   measurementId: "G-ND4NTZM0Q8"
 };
 
-// Inisialisasi Firebase
-const app = initializeApp(firebaseConfig);
-
-// Ekspor service yang dipakai
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Inisialisasi
+const app     = initializeApp(firebaseConfig);
+const auth    = getAuth(app);
+const db      = getFirestore(app);
 const storage = getStorage(app);
 
+// Ekspor untuk dipakai modul lain
 export { app, auth, db, storage };
