@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-export const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyCpw9RcZeXoWr5qykB4awgbCC-MiVVma_M",
   authDomain: "promohub-666.firebaseapp.com",
   projectId: "promohub-666",
