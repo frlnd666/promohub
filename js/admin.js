@@ -16,8 +16,8 @@ import {
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 // ====== CONSTANTS ======
-const UPLOAD_ENDPOINT = "/api/upload"; // gunakan API Vercel milikmu
-const CHECK_ECOMOBI_STATUS_ENDPOINT = "/api/check-ecomobi-status"; // opsional, aman jika belum ada
+const UPLOAD_ENDPOINT = 'https://promohub-beta.vercel.app/api/upload'; // gunakan API Vercel milikmu
+const CHECK_ECOMOBI_STATUS_ENDPOINT = 'https://promohub-beta.vercel.app/api/check-ecomobi-status'; // opsional, aman jika belum ada
 
 // ====== EDIT STATE ======
 let isEditing = { product: false, store: false, promo: false, banner: false };
